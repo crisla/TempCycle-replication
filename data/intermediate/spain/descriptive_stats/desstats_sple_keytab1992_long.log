@@ -1,0 +1,23 @@
+-----------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\Cristina Lafuente\Documents\Research\TempCycle\spain\descriptive_stats/desstats_sple_
+> keytab1992_long.log
+  log type:  text
+ opened on:  26 Jul 2026, 11:50:24
+
+max_TC_samp |
+         le |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    136,310       20.55       20.55
+         .5 |     89,226       13.45       34.00
+          1 |    176,402       26.59       60.59
+        1.5 |     45,581        6.87       67.46
+          2 |    215,907       32.54      100.00
+------------+-----------------------------------
+      Total |    663,426      100.00
+      name:  <unnamed>
+       log:  C:\Users\Cristina Lafuente\Documents\Research\TempCycle\spain\descriptive_stats/desstats_sple_
+> keytab1992_long.log
+  log type:  text
+ closed on:  26 Jul 2026, 11:50:24
+-----------------------------------------------------------------------------------------------------------

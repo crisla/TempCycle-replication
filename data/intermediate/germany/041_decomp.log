@@ -1,0 +1,336 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Josua\Output\d7e474c022fd4df19739f22ddab34246\/041_decomp.log
+  log type:  text
+ opened on:  10 Jun 2026, 14:57:52
+
+. 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>         
+>         SIAB Analysis
+>         
+>         Do-File for Baseline Variance Decomposition
+> 
+>         This do-file performs the baseline variance decomposition following the 
+>         non-parametric decomposition developed by Alvarez, Borovickova 
+>         and Shimer (2014) using only temporary jobs as unstable employment.
+>         
+>         Table 12 gives the baseline variance decomposition with the following
+>         parameters:
+>         lsig_y2 - the total variance
+>         sig_x - spell number
+>         lsig_c - the constant macro component
+>         lsig_e2 - duration dependence (excess variance estimator)
+>         lsig_b2 - heterogeneity (between variance)
+>         lpsig_c - share constant
+>         lpsig_x - share spell number
+>         lpsig_e - share duration dependence
+>         lpsig_b - share heterogeneity
+>         mu_y - average duration (individual mean days)
+>         sig_y - variance of level days
+>         
+>         Jenny Peters
+> 
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. 
+. use "$data/036_decomp.dta", clear
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+
+. 
+. 
+. *individual mean days
+. //by id: g mu_i = (days[1]+days[2])/2 if n_TC==2
+. by id: egen mu_i = mean(days)
+
+. by id: replace mu_i = . if n_TC==1
+(3633 real changes made, 3633 to missing)
+
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen N = count(mu_i)
+
+. *sample mean days
+. egen mu_y = mean(mu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. *indiv variance
+. by id : gen sig_i = ((days[1]-days[2])^2)/2 if n_TC==2
+(3,633 missing values generated)
+
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. *average variance
+. by id : gen sigyi = days[1]^2 + days[2]^2 - 2*mu_y^2 if mu_i!=.
+(3,633 missing values generated)
+
+. 
+. gen sig_y = sum(sigyi)/(2*N-1)
+
+. replace sig_y = sig_y[_N]
+(7,265 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. *within variance
+. egen sig_w = mean(sig_i)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. *between variance
+. by id : gen sigbi = mu_i^2 - 0.5*sig_i - mu_y^2 + (1/(2*N))*sig_y
+(3,633 missing values generated)
+
+. egen sig_b = mean(sigbi)
+
+. 
+. *-*-*-* sigma c bar hat *-*-*-*
+. *constant macro component
+. by id : gen sigci = mu_i^2 - 0.5*sig_i
+(3,633 missing values generated)
+
+. egen sig_c = mean(sigci)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. *excess variance estimator
+. by id : gen sigei = (3/2)*sig_i - mu_i^2
+(3,633 missing values generated)
+
+. egen sig_e = mean(sigei)
+
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* 4.2 LOGS DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen ldays = log(days)
+
+. 
+. *-*-*-* mu hat i *-*-*-*
+. 
+. by id : gen lmu_i = (ldays[1]+ldays[2])/2 if n_TC==2
+(3,633 missing values generated)
+
+. by id : replace lmu_i = . if n_TC==1
+(/ real changes made)
+
+. 
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen lmu_y = mean(lmu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. 
+. by id : gen lsig_i = ((ldays[1]-ldays[2])^2)/2 if n_TC==2
+(3,633 missing values generated)
+
+. replace lsig_i=. if n_TC==1
+(/ real changes made)
+
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. 
+. by id: gen lsigyi = ldays[1]^2 + ldays[2]^2 - 2*lmu_y^2 if lmu_i!=.
+(3,633 missing values generated)
+
+. 
+. gen lsig_y = sum(lsigyi)/((2*N)-1)
+
+. replace lsig_y = lsig_y[_N]
+(7,265 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. gen lsig_w = sum(lsig_i)/N
+
+. replace lsig_w = lsig_w[_N]
+(7,265 real changes made)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. by id : gen lsigbi = lmu_i^2 - 0.5*lsig_i - lmu_y^2 + (1/(2*N))*lsig_y
+(3,633 missing values generated)
+
+. gen lsig_b = sum(lsigbi)/N
+
+. replace lsig_b = lsig_b[_N]
+(7,265 real changes made)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e = lsig_w - (c(pi)^2)/6
+
+. 
+. gen lsig_c = (c(pi)^2)/6
+
+. 
+. *-*-*-* Saving results *-*-*-*
+. 
+. gen psig_c = sig_c/sig_y
+
+. gen psig_e = sig_e/sig_y 
+
+. gen psig_b = sig_b/sig_y
+
+. 
+. gen plsig_c = lsig_c/lsig_y
+
+. gen plsig_e = lsig_e/lsig_y
+
+. gen plsig_b = lsig_b/lsig_y
+
+. //
+. //
+. // sum sig_y sig_c sig_e sig_b
+. //
+. // sum psig_c psig_e psig_b
+. //
+. // sum lsig_y lsig_c lsig_e lsig_b
+. //
+. // sum plsig_c plsig_e plsig_b
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* SPELLS CONTROL DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen spell_d1=1 if n_TC==2
+(3,633 missing values generated)
+
+. replace spell_d = 0 if n_TC ==1
+(3,633 real changes made)
+
+. 
+. 
+. qui reg ldays spell_d
+
+. 
+. predict res, r
+
+. 
+. replace res = 0 if res==.
+(/ real changes made)
+
+. 
+. *-*-*-* mu hat bar eps *-*-*-*
+. 
+. sort id n_TC
+
+. by id: gen resi = (res[1]^2+res[2]^2)/2 if _n==2
+(3,633 missing values generated)
+
+. by id: replace resi = . if [_n]!=2
+(/ real changes made)
+
+. gen sigma_eps = sum(resi)/(N-1)
+
+. replace sigma_eps = sigma_eps[_N]
+(7,265 real changes made)
+
+. 
+. *-*-*-* sigma hat y *-*-*-*
+. 
+. by id : gen lmu_i2 = (ldays[1]+ldays[2])/2
+
+. by id: replace lmu_i2 = . if [_n]!=2
+(3633 real changes made, 3633 to missing)
+
+. egen mu_y2 = mean(lmu_i)
+
+. 
+. by id : gen lsy = ((ldays[1]-mu_y2)^2 + (ldays[2]-mu_y2)^2)/(2*N-1)
+
+. by id: replace lsy = . if [_n]!=2
+(3633 real changes made, 3633 to missing)
+
+. 
+. gen lsig_y2 = sum(lsy)
+
+. replace lsig_y2 = lsig_y2[_N]
+(7,265 real changes made)
+
+. 
+. gen sig_x = lsig_y2-sigma_eps
+
+. 
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. by id: gen lsigi2 = (N*(res[1]-res[2])^2)/(2*(N-1))
+
+. egen lsig_w2 = mean(lsigi2)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. gen lsig_b2 = sigma_eps - lsig_w2
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e2 = lsig_w2 - (c(pi)^2)/6
+
+. 
+. gen lpsig_x= sig_x/lsig_y2
+
+. gen lpsig_e = lsig_e2/lsig_y2
+
+. gen lpsig_b = lsig_b2/lsig_y2
+
+. 
+. // sum lpsig_x lpsig_e lpsig_b
+. 
+. 
+. quietly gen lpsig_c = 1 - lpsig_x - abs(lpsig_e) - lpsig_b
+
+. 
+. 
+. // Print results: 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+> Table 12 gives the baseline variance decomposition with the following
+> parameters:
+>         lsig_y2 - the total variance
+>         sig_x - spell number
+>         lsig_c - the constant macro component
+>         lsig_e2 - duration dependence (excess variance estimator)
+>         lsig_b2 - heterogeneity (between variance)
+>         lpsig_c - share constant
+>         lpsig_x - share spell number
+>         lpsig_e - share duration dependence
+>         lpsig_b - share heterogeneity
+>         mu_y - average duration (individual mean days)
+>         sig_y - variance of level days
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. di "Table 12: Baseline Variance Decomposition - Temp Only"
+Table 12: Baseline Variance Decomposition - Temp Only
+
+. sum lsig_y2 sig_x lsig_c lsig_e2 lsig_b2 lpsig_c lpsig_x lpsig_e lpsig_b mu_y sig_y
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     lsig_y2 |      7,266    1.716115           0   1.716115   1.716115
+       sig_x |      7,266    .0195909           0   .0195909   .0195909
+      lsig_c |      7,266    1.644934           0   1.644934   1.644934
+     lsig_e2 |      7,266   -.0408021           0  -.0408021  -.0408021
+     lsig_b2 |      7,266    .0923921           0   .0923921   .0923921
+-------------+---------------------------------------------------------
+     lpsig_c |      7,266    .9109704           0   .9109704   .9109704
+     lpsig_x |      7,266    .0114158           0   .0114158   .0114158
+     lpsig_e |      7,266   -.0237759           0  -.0237759  -.0237759
+     lpsig_b |      7,266    .0538379           0   .0538379   .0538379
+        mu_y |      7,266    524.0515           0   524.0515   524.0515
+-------------+---------------------------------------------------------
+       sig_y |      7,266    259206.9           0   259206.9   259206.9
+
+. 
+. 
+. 
+. 
+. clear
+
+. log close
+      name:  <unnamed>
+       log:  C:\Josua\Output\d7e474c022fd4df19739f22ddab34246\/041_decomp.log
+  log type:  text
+ closed on:  10 Jun 2026, 14:57:52
+------------------------------------------------------------------------------------------------------------------------

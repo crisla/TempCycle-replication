@@ -1,0 +1,13 @@
+# Python stage of the TempCycle replication package.
+# Versions are those the published results were produced with.
+#   pip install -r requirements.txt
+
+pandas==2.2.3
+numpy==2.0.0
+scipy==1.14.1
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# Only needed to open the working notebooks in notebooks/;
+# run_all.py does not require it.
+jupyter==1.0.0

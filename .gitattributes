@@ -1,0 +1,14 @@
+* text=auto
+
+*.do    text eol=lf
+*.py    text eol=lf
+*.tex   text eol=lf
+*.md    text eol=lf
+*.log   text eol=lf
+*.csv   text eol=lf
+*.ipynb text eol=lf
+
+*.png   binary
+*.pdf   binary
+*.xls   binary
+*.xlsx  binary

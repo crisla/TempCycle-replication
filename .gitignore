@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Restricted microdata. Nothing under data/raw/ is ever committed except the
+# README that explains how to obtain it. This is a safety net, not a
+# substitute for care: check `git status` before every commit.
+# ---------------------------------------------------------------------------
+data/raw/*
+!data/raw/README.md
+
+# Stata data and any microdata-derived extract, wherever it ends up
+*.dta
+*.trs
+*.sav
+*.sas7bdat
+code/spain/rawfiles/*.dta
+code/spain/rawfiles/[0-9][0-9][0-9][0-9]/
+
+# Individual-level duration extracts (carry id / days / jobcount)
+dur_*_1obs*.csv
+dur_*_v2*.csv
+
+# ---------------------------------------------------------------------------
+# Generated output. Regenerate with `python run_all.py`.
+# ---------------------------------------------------------------------------
+output/intermediate/*
+!output/intermediate/.gitkeep
+
+# ---------------------------------------------------------------------------
+# Working files
+# ---------------------------------------------------------------------------
+.ipynb_checkpoints/
+.virtual_documents/
+__pycache__/
+*.pyc
+*.smcl
+*.stswp
+*.asv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+~$*

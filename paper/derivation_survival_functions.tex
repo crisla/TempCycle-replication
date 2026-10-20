@@ -1,0 +1,325 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{enumitem}
+
+\newcommand{\dd}{\mathrm{d}}
+
+\title{Derivation of Survival Functions $\Psi_2$, $\Psi_3$, $\Psi_4$\\[4pt]
+\large via Kolmogorov Forward Equations}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setup}
+
+Consider a worker who progresses through a sequence of spells with
+alternating exponential holding times.  The $k$-th spell has duration
+$X_k \sim \text{Exp}(r_k)$, where $r_k \in \{a, b\}$ alternates.
+We seek closed-form expressions for the \emph{survival functions}
+\[
+  \Psi_n(T) \;=\; \Pr\!\Bigl(\sum_{k=1}^{n} X_k > T\Bigr),
+\]
+i.e.\ the probability that the worker has \emph{not} completed all $n$
+spells by time~$T$.
+
+We model the progression as a \textbf{continuous-time Markov chain (CTMC)}
+on states $\{0, 1, \ldots, n\}$, where state~$j$ means ``the worker is in
+spell $j{+}1$'' (for $j < n$) or ``all spells completed'' ($j = n$).
+State~$n$ is absorbing.  The transition rate out of state~$j$ is~$r_{j+1}$.
+
+Define $q_j(t) = \Pr(\text{state} = j \text{ at time } t)$, with initial
+condition $q_0(0) = 1$ and $q_j(0) = 0$ for $j \geq 1$.
+
+The \textbf{Kolmogorov forward equations} are:
+\begin{align}
+  \frac{\dd q_0}{\dd t} &= -r_1 \, q_0, \label{eq:fwd0}\\[4pt]
+  \frac{\dd q_j}{\dd t} &= r_j \, q_{j-1} - r_{j+1} \, q_j,
+    \quad j = 1, \ldots, n-1, \label{eq:fwdj}\\[4pt]
+  \frac{\dd q_n}{\dd t} &= r_n \, q_{n-1}. \label{eq:fwdn}
+\end{align}
+The survival function is then
+\[
+  \Psi_n(T) = 1 - q_n(T) = \sum_{j=0}^{n-1} q_j(T).
+\]
+
+Throughout, we assume $a \neq b$ (the degenerate case $a = b$ yields
+Erlang distributions and is handled separately in the code).
+We write $d = a - b$.
+
+%----------------------------------------------------------------------
+\section{$\Psi_2$: Sum of two exponentials with rates $a, b$}
+%----------------------------------------------------------------------
+
+The chain has states $\{0, 1, 2\}$ with rate sequence $(r_1, r_2) = (a, b)$.
+
+\paragraph{Step 1: Solve for $q_0$.}
+From \eqref{eq:fwd0}:
+\[
+  q_0'(t) = -a\, q_0(t), \quad q_0(0) = 1
+  \;\;\Longrightarrow\;\;
+  q_0(t) = e^{-at}.
+\]
+
+\paragraph{Step 2: Solve for $q_1$.}
+From \eqref{eq:fwdj} with $j=1$:
+\[
+  q_1'(t) = a\, q_0(t) - b\, q_1(t) = a\, e^{-at} - b\, q_1(t), \quad q_1(0) = 0.
+\]
+This is a first-order linear ODE.  The integrating factor is $e^{bt}$:
+\[
+  \frac{\dd}{\dd t}\bigl[e^{bt}\, q_1(t)\bigr] = a\, e^{(b-a)t} = a\, e^{-dt}.
+\]
+Integrating from $0$ to $t$:
+\[
+  e^{bt}\, q_1(t) = a\,\frac{1 - e^{-dt}}{d}.
+\]
+Hence
+\[
+  q_1(t) = \frac{a}{d}\bigl(e^{-bt} - e^{-at}\bigr).
+\]
+
+\paragraph{Step 3: Survival function.}
+\begin{align}
+  \Psi_2(T;\, a, b)
+  &= q_0(T) + q_1(T) \notag\\
+  &= e^{-aT} + \frac{a}{d}\bigl(e^{-bT} - e^{-aT}\bigr) \notag\\
+  &= \frac{-b}{d}\,e^{-aT} + \frac{a}{d}\,e^{-bT}.
+\end{align}
+
+\begin{equation}
+\boxed{\;\Psi_2(T;\, a, b) = \frac{a\,e^{-bT} - b\,e^{-aT}}{a - b}\;}
+\label{eq:psi2}
+\end{equation}
+
+\paragraph{Verification.} At $T = 0$: $(a - b)/(a - b) = 1$. \checkmark
+
+%----------------------------------------------------------------------
+\section{$\Psi_3$: Sum of three exponentials with rates $a, b, a$}
+%----------------------------------------------------------------------
+
+The chain has states $\{0, 1, 2, 3\}$ with rate sequence $(r_1, r_2, r_3) = (a, b, a)$.
+Note that rate~$a$ appears with multiplicity~2.
+
+\paragraph{Step 1: $q_0$ and $q_1$.}
+These are identical to the $\Psi_2$ case:
+\[
+  q_0(t) = e^{-at}, \qquad
+  q_1(t) = \frac{a}{d}\bigl(e^{-bt} - e^{-at}\bigr).
+\]
+
+\paragraph{Step 2: Solve for $q_2$.}
+From \eqref{eq:fwdj} with $j = 2$:
+\[
+  q_2'(t) + a\, q_2(t) = b\, q_1(t)
+  = \frac{ab}{d}\bigl(e^{-bt} - e^{-at}\bigr), \quad q_2(0) = 0.
+\]
+Using integrating factor $e^{at}$:
+\[
+  \frac{\dd}{\dd t}\bigl[e^{at}\, q_2(t)\bigr]
+  = \frac{ab}{d}\bigl(e^{dt} - 1\bigr).
+\]
+Integrating from $0$ to $t$:
+\[
+  e^{at}\, q_2(t) = \frac{ab}{d}\biggl[\frac{e^{dt} - 1}{d} - t\biggr]
+  = \frac{ab}{d^2}\bigl(e^{dt} - 1 - dt\bigr).
+\]
+Therefore
+\[
+  q_2(t) = \frac{ab}{d^2}\Bigl[e^{-bt} - (1 + dt)\,e^{-at}\Bigr].
+\]
+
+\paragraph{Step 3: Survival function.}
+\begin{align}
+  \Psi_3(T) &= q_0(T) + q_1(T) + q_2(T) \notag\\[4pt]
+  &= e^{-aT} + \frac{a}{d}\bigl(e^{-bT} - e^{-aT}\bigr)
+     + \frac{ab}{d^2}\bigl(e^{-bT} - (1 + dT)\,e^{-aT}\bigr).
+\end{align}
+Collecting the $e^{-bT}$ terms:
+\[
+  \text{coeff.\ of } e^{-bT} = \frac{a}{d} + \frac{ab}{d^2}
+  = \frac{a(d + b)}{d^2} = \frac{a^2}{d^2}.
+\]
+Collecting the $e^{-aT}$ terms:
+\[
+  \text{coeff.\ of } e^{-aT}
+  = 1 - \frac{a}{d} - \frac{ab}{d^2} - \frac{abdT}{d^2}.
+\]
+The first three terms (with common denominator $d^2$) give
+\(
+  (d^2 - ad - ab)/d^2 = b(b-2a)/d^2,
+\)
+since $d^2 - ad - ab = (a-b)^2 - a(a-b) - ab = b^2 - 2ab$.
+Combining with the $T$-dependent piece:
+\[
+  \text{coeff.\ of } e^{-aT}
+  = \frac{b(b-2a) - abdT}{d^2}
+  = -\frac{b(2a - b + adT)}{d^2}.
+\]
+
+\begin{equation}
+\boxed{\;\Psi_3(T;\, a, b) = \frac{a^2\,e^{-bT} - b\,(2a - b + adT)\,e^{-aT}}{(a-b)^2}\;}
+\label{eq:psi3}
+\end{equation}
+
+\paragraph{Verification.} At $T = 0$:
+$\frac{a^2 - b(2a - b)}{d^2} = \frac{a^2 - 2ab + b^2}{d^2} = 1.$ \checkmark
+
+%----------------------------------------------------------------------
+\section{$\Psi_4$: Sum of four exponentials with rates $a, b, a, b$}
+%----------------------------------------------------------------------
+
+The chain has states $\{0, 1, 2, 3, 4\}$ with rate sequence
+$(r_1, r_2, r_3, r_4) = (a, b, a, b)$.
+Each rate has multiplicity~2 and the final formula is symmetric in $a, b$.
+
+\paragraph{Steps 1--2: $q_0$, $q_1$, $q_2$.}
+From the previous section:
+\[
+  q_0(t) = e^{-at}, \quad
+  q_1(t) = \frac{a}{d}\bigl(e^{-bt} - e^{-at}\bigr), \quad
+  q_2(t) = \frac{ab}{d^2}\bigl(e^{-bt} - (1 + dt)\,e^{-at}\bigr).
+\]
+
+\paragraph{Step 3: Solve for $q_3$.}
+From \eqref{eq:fwdj} with $j = 3$, the rate out of state~3 is $r_4 = b$:
+\[
+  q_3'(t) + b\, q_3(t) = a\, q_2(t)
+  = \frac{a^2 b}{d^2}\bigl[e^{-bt} - (1 + dt)\,e^{-at}\bigr],
+  \quad q_3(0) = 0.
+\]
+Using integrating factor $e^{bt}$:
+\[
+  \frac{\dd}{\dd t}\bigl[e^{bt}\, q_3(t)\bigr]
+  = \frac{a^2 b}{d^2}\bigl[1 - (1 + dt)\,e^{-dt}\bigr].
+\]
+We integrate each part from $0$ to $t$.
+For the constant part: $\int_0^t 1\,\dd s = t$.
+For the exponential part, we compute
+\[
+  \int_0^t (1 + ds)\,e^{-ds}\,\dd s
+  \;=\; \underbrace{\int_0^t e^{-ds}\,\dd s}_{\displaystyle \frac{1 - e^{-dt}}{d}}
+  \;+\; d \underbrace{\int_0^t s\, e^{-ds}\,\dd s}_{\text{by parts}}.
+\]
+Integration by parts on the second integral:
+\[
+  \int_0^t s\, e^{-ds}\,\dd s
+  = \Bigl[-\frac{s}{d}\,e^{-ds}\Bigr]_0^t + \frac{1}{d}\int_0^t e^{-ds}\,\dd s
+  = -\frac{t}{d}\,e^{-dt} + \frac{1 - e^{-dt}}{d^2}.
+\]
+Multiplying by $d$ and adding:
+\[
+  \int_0^t (1 + ds)\,e^{-ds}\,\dd s
+  = \frac{1 - e^{-dt}}{d}
+    - t\,e^{-dt} + \frac{1 - e^{-dt}}{d}
+  = \frac{2(1 - e^{-dt})}{d} - t\,e^{-dt}.
+\]
+Therefore
+\[
+  e^{bt}\, q_3(t)
+  = \frac{a^2 b}{d^2}\biggl[t - \frac{2(1 - e^{-dt})}{d} + t\,e^{-dt}\biggr].
+\]
+Multiplying through by $e^{-bt}$ and using $e^{-dt} \cdot e^{-bt} = e^{-(d+b)t} = e^{-at}$:
+\[
+  q_3(t) = \frac{a^2 b}{d^2}\biggl[
+    t\bigl(e^{-bt} + e^{-at}\bigr) - \frac{2}{d}\bigl(e^{-bt} - e^{-at}\bigr)
+  \biggr].
+\]
+
+\paragraph{Step 4: Survival function.}
+\begin{align}
+  \Psi_4(T) &= q_0(T) + q_1(T) + q_2(T) + q_3(T) \notag\\[4pt]
+  &= e^{-aT}
+     + \frac{a}{d}\bigl(e^{-bT} - e^{-aT}\bigr)
+     + \frac{ab}{d^2}\bigl[e^{-bT} - (1{+}dT)e^{-aT}\bigr] \notag\\
+  &\quad + \frac{a^2 b}{d^2}\biggl[T\bigl(e^{-bT} + e^{-aT}\bigr)
+     - \frac{2}{d}\bigl(e^{-bT} - e^{-aT}\bigr)\biggr]. \label{eq:psi4_expand}
+\end{align}
+
+We collect the coefficients of $e^{-bT}$ and $e^{-aT}$ separately, using
+common denominator $d^3$.
+
+\medskip
+\noindent\textbf{Coefficient of $e^{-bT}$:}
+\begin{align*}
+  C_b &= \frac{a}{d} + \frac{ab}{d^2} + \frac{a^2 bT}{d^2} - \frac{2a^2 b}{d^3}
+  \\[4pt]
+  &= \frac{ad^2 + abd + a^2 bTd - 2a^2 b}{d^3}.
+\end{align*}
+Using $d + b = a$, the non-$T$ part simplifies:
+$ad^2 + abd - 2a^2b = ad(d + b) - 2a^2b = a^2d - 2a^2b = a^2(d - 2b) = a^2(a - 3b)$.
+Hence
+\[
+  C_b = \frac{a^2(a - 3b + bdT)}{d^3}.
+\]
+
+\medskip
+\noindent\textbf{Coefficient of $e^{-aT}$:}
+\begin{align*}
+  C_a &= 1 - \frac{a}{d} - \frac{ab}{d^2} - \frac{abdT}{d^2}
+         + \frac{a^2 bT}{d^2} + \frac{2a^2 b}{d^3}
+  \\[4pt]
+  &= \frac{d^3 - ad^2 - abd - abd^2T + a^2 bdT + 2a^2 b}{d^3}.
+\end{align*}
+The non-$T$ terms factor as
+\[
+  d^3 - ad^2 - abd + 2a^2b = b(2a^2 - ad - d^2) = b(a - d)(2a + d).
+\]
+Since $a - d = b$ and $2a + d = 3a - b$, this equals $b^2(3a - b)$.
+For the $T$-terms: $-abd^2T + a^2bdT = abdT(a - d) = ab^2dT$.
+Therefore
+\[
+  C_a = \frac{b^2(3a - b) + ab^2 dT}{d^3} = \frac{b^2(3a - b + adT)}{d^3}.
+\]
+
+\begin{equation}
+\boxed{\;\Psi_4(T;\,a,b) = \frac{b^2(3a - b + adT)\,e^{-aT} + a^2(a - 3b + bdT)\,e^{-bT}}{(a-b)^3}\;}
+\label{eq:psi4}
+\end{equation}
+
+\paragraph{Verification.} At $T = 0$:
+\[
+  \frac{b^2(3a-b) + a^2(a-3b)}{d^3}
+  = \frac{3ab^2 - b^3 + a^3 - 3a^2b}{(a-b)^3}
+  = \frac{(a - b)^3}{(a-b)^3}
+  = 1. \;\checkmark
+\]
+
+\paragraph{Symmetry.} Note that $\Psi_4(T;\,a,b) = \Psi_4(T;\,b,a)$:
+swapping $a \leftrightarrow b$ sends $d \to -d$, exchanges the two terms in the
+numerator, and cubes the sign change in the denominator, leaving the
+expression unchanged.  This is expected since the rate sequence $(a,b,a,b)$
+has the same sum distribution as $(b,a,b,a)$.
+
+%----------------------------------------------------------------------
+\section{Summary}
+%----------------------------------------------------------------------
+
+Let $X_k \sim \text{Exp}(r_k)$ be independent, with rate sequence
+$(r_1, r_2, \ldots) = (a, b, a, b, \ldots)$, and let $d = a - b \neq 0$.
+
+\begin{align}
+  \Psi_2(T) &= \Pr(X_1 + X_2 > T) &&= \frac{a\,e^{-bT} - b\,e^{-aT}}{d} \label{eq:s2}\\[8pt]
+  \Psi_3(T) &= \Pr(X_1 + X_2 + X_3 > T) &&= \frac{a^2\,e^{-bT} - b(2a - b + adT)\,e^{-aT}}{d^2} \label{eq:s3}\\[8pt]
+  \Psi_4(T) &= \Pr\Bigl(\sum_{k=1}^4 X_k > T\Bigr) &&= \frac{b^2(3a{-}b{+}adT)\,e^{-aT} + a^2(a{-}3b{+}bdT)\,e^{-bT}}{d^3} \label{eq:s4}
+\end{align}
+
+These formulas are used to compute exact bin probabilities for the discrete
+mixture model.  Each worker type $(\lambda, \delta)$ generates a CTMC whose
+rate sequence depends on whether the worker starts in an unstable or stable
+spell:
+\begin{itemize}[nosep]
+  \item \textbf{U-starter}: rates $(\lambda, \delta, \lambda)$ --- uses $\Psi_2(T;\lambda,\delta)$ and $\Psi_3(T;\lambda,\delta)$.
+  \item \textbf{S-starter}: rates $(\delta, \lambda, \delta, \lambda)$ --- uses $\Psi_2(T;\delta,\lambda)$, $\Psi_3(T;\delta,\lambda)$, and $\Psi_4(T;\delta,\lambda)$.
+\end{itemize}
+
+\paragraph{Degenerate case ($a = b = r$).}
+When the two rates are equal, the sums are Erlang-distributed:
+\[
+  \Psi_n(T;\, r, r) = e^{-rT} \sum_{k=0}^{n-1} \frac{(rT)^k}{k!}.
+\]
+
+\end{document}

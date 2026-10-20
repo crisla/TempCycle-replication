@@ -1,0 +1,839 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Josua\Output\514bbe62eba54b2c83a9de49a3246cbd\/05_descriptives.log
+  log type:  text
+ opened on:   7 Jul 2026, 08:44:15
+
+. 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>         
+>         SIAB Preparation
+>         
+>         Unstable Employment Cycles
+>         Do-File for Descriptive Statistics of SIAB Data
+> 
+>         Structure of file:
+>         
+>         The first part uses the whole unified spells.
+>         
+>         The second part uses the "baseline" file for different timne windows. It 
+>         restricts age to 25 to 50 years old, and partitions the sample into 2+ 
+>         completed spells, just one or none, but uses all spells of individuals.
+>         
+>         The third part uses the actual file used for the decomposition: same as
+>         above but only the first two spells of individuals. 
+> 
+>         The descriptive stats are key demographics: age, sex, education
+>         Then also industry of last employment, number and length of spells of
+>         each labour state. 
+>         
+>         User: Jenny Peters
+>         
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. 
+. * incidence of atypical employment: turn spells into a stock measure, compute the monthly share, then average those 12
+>  monthly shares within each year
+. use "$data/02_entirespells", clear
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+
+. 
+. g atypical = 0
+
+. replace atypical = 1 if employment_status == 109 | employment_status == 209 | fixed_term == 1
+(3,688,357 real changes made)
+
+. qui gen int yrin=year(min_begepi)
+
+. qui gen int monthin=month(min_begepi)
+
+. qui gen int yrout=year(max_endepi)
+
+. qui gen int monthout=month(max_endepi)
+
+. 
+. 
+. * keep only employed
+. keep if state == 2 | state == 3
+(6,419,533 observations deleted)
+
+. 
+. * Monthly index for start/end
+. gen int m_in  = mofd(min_begepi)
+
+. gen int m_out = mofd(max_endepi)
+
+. 
+. * only 2011+ is reported -> drop earlier spells and clip the rest before expanding
+. drop if m_out < ym(2011,1)              // spell ends before 2011: irrelevant
+(921,291 observations deleted)
+
+. replace m_in = ym(2011,1) if m_in < ym(2011,1)   // clip start to Jan 2011
+(118,904 real changes made)
+
+. 
+. * Expand each spell into one row per active month
+. gen int nmonths = m_out - m_in + 1
+
+. expand nmonths
+(82,735,334 observations created)
+
+. 
+. bysort id min_begepi max_endepi: gen int m = m_in + _n - 1
+
+. format m %tm
+
+. 
+. collapse (max) atypical, by(id m)
+
+. 
+. * Check both unique persons AND person-months by year and atypical status
+. gen int year = yofd(dofm(m))
+
+. 
+. * means are shares because atypical are 0/1 and denominator is all employed in month m
+. * yearly averages + number of months used per year
+. 
+. collapse (mean) atypical (count) N = atypical, by(year)
+
+. keep if year >= 2011
+(/ observations deleted)
+
+. 
+. 
+. ************************************************
+. * Table 1: share of atypical in all of employment
+. * variables: year, share of atypical contracts of all employment contracts
+. ************************************************
+. list year atypical N
+
+     +---------------------------+
+     | year   atypical         N |
+     |---------------------------|
+  1. | 2011   .3257515   5513430 |
+  2. | 2012   .2648926   7549429 |
+  3. | 2013   .2698253   7670171 |
+  4. | 2014    .274595   7765367 |
+  5. | 2015   .2746101   7839252 |
+     |---------------------------|
+  6. | 2016   .2769611   7954054 |
+  7. | 2017   .2770119   8059330 |
+  8. | 2018   .2739955   8185946 |
+  9. | 2019   .2682885   8256812 |
+ 10. | 2020   .2540145   8129277 |
+     |---------------------------|
+ 11. | 2021   .2470362   8112650 |
+     +---------------------------+
+
+. 
+. * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+. use "$data/05_descriptives.dta", clear
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+
+. replace days_p_pre2011 = 0 if missing(days_p_pre2011)
+(/ real changes made)
+
+. gen double days_p_total = days_p + days_p_pre2011
+
+. preserve
+
+. drop if min_year < 2011
+(4,991,605 observations deleted)
+
+. 
+. ************************************************
+. * Table 2: Descriptives for baseline sample including never unstable
+. * Variables: age, gender, nationality, number of permanent and temp contracts,
+. * days permanent, days temp/unemp (lifetime)
+. ************************************************
+. tabstat age sex_d foreign n_PC n_TC_sample days_p_total days_tu if samesame==1, by(max_TC_sample) statistics(mean sd m
+> in p10 p25 p50 p75 p90 max n)
+
+Summary statistics: Mean, SD, Min, p10, p25, p50, p75, p90, Max, N
+Group variable: max_TC_sample 
+
+max_TC_sample |       age     sex_d  foreig~n      n_PC  n_TC_s~e  days_p~l   days_tu
+--------------+----------------------------------------------------------------------
+            0 |  36.92198  .4225115   .326233  .5989834         0  4063.909  513.4709
+              |  9.633017    .49396  .4688346  .4901053         0  5059.938   924.608
+              |        25         0         0         0         0         0         0
+              |        26         0         0         0         0         0         0
+              |        28         0         0         0         0         0         0
+              |        35         0         0         1         0       730         0
+              |        46         1         1         1         0      8766       592
+              |        51         1         1         1         0     12194      1947
+              |        54         1         1         1         0     17166      7471
+              |    263226    263226    263226    263226    263226    263226    263226
+--------------+----------------------------------------------------------------------
+            1 |  35.08807  .4366675  .2835827  1.419925  .9999809  2697.704  852.2607
+              |  8.168205  .4959751  .4507388  .4940314  .0043668  3271.326  890.2144
+              |        25         0         0         0         0         1         0
+              |        27         0         0         1         1       133        46
+              |        29         0         0         1         1       424       141
+              |        32         0         0         1         1      1309       518
+              |        40         1         1         2         1      3614      1307
+              |        49         1         1         2         1      8123      2208
+              |        54         1         1         2         1     16733      7057
+              |    104883    104883    104883    104883    104883    104883    104883
+--------------+----------------------------------------------------------------------
+            2 |  36.59872  .4976397  .2604564  3.350565  2.852216  3086.137  1016.062
+              |  7.169841  .4999975  .4388863  1.444985  1.345916  2952.319  797.9188
+              |        25         0         0         1         2         3         2
+              |        29         0         0         2         2       454       153
+              |        31         0         0         2         2       980       383
+              |        35         0         0         3         2      2027       820
+              |        40         1         1         4         3    4228.5      1476
+              |        49         1         1         5         4      7535      2175
+              |        54         1         1        31        30     17010      7301
+              |     81768     81768     81768     81768     81768     81768     81768
+--------------+----------------------------------------------------------------------
+        Total |  36.43567  .4394668  .3043343  1.290493   .751541   3567.68  683.8045
+              |  8.930821  .4963228  .4601254  1.277497  1.214982  4407.067  918.8785
+              |        25         0         0         0         0         0         0
+              |        26         0         0         0         0         0         0
+              |        29         0         0         1         0        91         0
+              |        34         0         0         1         0      1349       246
+              |        44         1         1         2         1      6186      1071
+              |        51         1         1         3         2     11086      2081
+              |        54         1         1        31        30     17166      7471
+              |    449877    449877    449877    449877    449877    449877    449877
+-------------------------------------------------------------------------------------
+
+. 
+. ************************************************
+. * Table 3: Descriptives for baseline sample
+. * Variables: days permanent, days temp/unemp (only in sample window)
+. ************************************************
+. tabstat days_if_P days_if_TU, by(max_TC_sample) statistics(mean sd min p10 p25 p50 p75 p90 max n)
+
+Summary statistics: Mean, SD, Min, p10, p25, p50, p75, p90, Max, N
+Group variable: max_TC_sample 
+
+max_TC_sample |  days_i~P  days_i~U
+--------------+--------------------
+            0 |  2573.701  1581.312
+              |  1566.518  1169.012
+              |         1         0
+              |       152       142
+              |       883       545
+              |      3652      1423
+              |      4017      2458
+              |      4017      3341
+              |      4017      7471
+              |    157674    347402
+--------------+--------------------
+            1 |  1069.717  1106.835
+              |  989.8586  926.5207
+              |         1         0
+              |        65        83
+              |       243       329
+              |       730       893
+              |      1674      1709
+              |      2640      2484
+              |      4003      7057
+              |    148958    283952
+--------------+--------------------
+            2 |  550.4843  560.7697
+              |  668.7602  643.5331
+              |         1         0
+              |        29        29
+              |        66        88
+              |       277       317
+              |       777       819
+              |      1513      1480
+              |      3949      6884
+              |    273991    402168
+--------------+--------------------
+        Total |  1233.117  1053.836
+              |  1357.793  1022.376
+              |         1         0
+              |        31        55
+              |       151       198
+              |       637       727
+              |      1940      1653
+              |      3895      2636
+              |      4017      7471
+              |    580623   1033522
+-----------------------------------
+
+. 
+. ************************************************
+. * Table 4: Descriptives for baseline sample excluding never unstable
+. * Variables: age, gender, nationality, number of permanent and temp contracts,
+. * days permanent, days temp/unemp (lifetime)
+. ************************************************
+. tabstat age sex_d foreign n_PC n_TC_sample days_p_total days_tu if samesame==1 & attached==0, by(max_TC_sample) statis
+> tics(mean sd min p10 p25 p50 p75 p90 max n)
+
+Summary statistics: Mean, SD, Min, p10, p25, p50, p75, p90, Max, N
+Group variable: max_TC_sample 
+
+max_TC_sample |       age     sex_d  foreig~n      n_PC  n_TC_s~e  days_p~l   days_tu
+--------------+----------------------------------------------------------------------
+            0 |  35.06195  .5031147  .4483891  .1921788         0  1253.975  1034.353
+              |  9.291628  .4999922  .4973311  .3940143         0   3272.59  1087.826
+              |        25         0         0         0         0         0         0
+              |        26         0         0         0         0         0        48
+              |        27         0         0         0         0         0       150
+              |        32         1         0         0         0         0       606
+              |        42         1         1         0         0       144      1674
+              |        51         1         1         1         0      5196      2756
+              |        54         1         1         1         0     16940      7471
+              |    130670    130670    130670    130670    130670    130670    130670
+--------------+----------------------------------------------------------------------
+            1 |  35.08807  .4366675  .2835827  1.419925  .9999809  2697.704  852.2607
+              |  8.168205  .4959751  .4507388  .4940314  .0043668  3271.326  890.2144
+              |        25         0         0         0         0         1         0
+              |        27         0         0         1         1       133        46
+              |        29         0         0         1         1       424       141
+              |        32         0         0         1         1      1309       518
+              |        40         1         1         2         1      3614      1307
+              |        49         1         1         2         1      8123      2208
+              |        54         1         1         2         1     16733      7057
+              |    104883    104883    104883    104883    104883    104883    104883
+--------------+----------------------------------------------------------------------
+            2 |  36.59872  .4976397  .2604564  3.350565  2.852216  3086.137  1016.062
+              |  7.169841  .4999975  .4388863  1.444985  1.345916  2952.319  797.9188
+              |        25         0         0         1         2         3         2
+              |        29         0         0         2         2       454       153
+              |        31         0         0         2         2       980       383
+              |        35         0         0         3         2      2027       820
+              |        40         1         1         4         3    4228.5      1476
+              |        49         1         1         5         4      7535      2175
+              |        54         1         1        31        30     17010      7301
+              |     81768     81768     81768     81768     81768     81768     81768
+--------------+----------------------------------------------------------------------
+        Total |  35.46658  .4797413  .3454893  1.411842  1.065486  2203.282  969.4534
+              |  8.443668  .4995902  .4755283  1.504581   1.32602  3293.336  959.2309
+              |        25         0         0         0         0         0         0
+              |        26         0         0         0         0         0        60
+              |        29         0         0         0         0         0       187
+              |        33         0         0         1         1       730       651
+              |        40         1         1         2         2      2787      1490
+              |        50         1         1         3         3      7421      2402
+              |        54         1         1        31        30     17010      7471
+              |    317321    317321    317321    317321    317321    317321    317321
+-------------------------------------------------------------------------------------
+
+. 
+. ************************************************
+. * Table 5: Descriptives for baseline sample
+. * Variables: education and number of temp contracts
+. ************************************************
+. tab educ2 max_TC_sample if samesame==1, column
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+                      |          max_TC_sample
+                educ2 |         0          1          2 |     Total
+----------------------+---------------------------------+----------
+                    0 |    38,962      6,687      2,999 |    48,648 
+                      |     14.80       6.38       3.67 |     10.81 
+----------------------+---------------------------------+----------
+       Primary School |     9,184      2,669      1,749 |    13,602 
+                      |      3.49       2.54       2.14 |      3.02 
+----------------------+---------------------------------+----------
+Lower Secondary Schoo |    61,409     21,029     16,437 |    98,875 
+                      |     23.33      20.05      20.10 |     21.98 
+----------------------+---------------------------------+----------
+Upper Secondary Schoo |    99,233     46,538     43,785 |   189,556 
+                      |     37.70      44.37      53.55 |     42.14 
+----------------------+---------------------------------+----------
+           University |    54,438     27,960     16,798 |    99,196 
+                      |     20.68      26.66      20.54 |     22.05 
+----------------------+---------------------------------+----------
+                Total |   263,226    104,883     81,768 |   449,877 
+                      |    100.00     100.00     100.00 |    100.00 
+
+. 
+. 
+. ************************************************
+. * Table 6: Descriptives for baseline sample
+. * Variables: industry and number of temp contracts
+. ************************************************
+. tab ind_short max_TC_sample if samesame==1, column
+
++-------------------+
+| Key               |
+|-------------------|
+|     frequency     |
+| column percentage |
++-------------------+
+
+                      |          max_TC_sample
+             Industry |         0          1          2 |     Total
+----------------------+---------------------------------+----------
+                   NA |    37,407      8,691      7,500 |    53,598 
+                      |     14.21       8.29       9.17 |     11.91 
+----------------------+---------------------------------+----------
+          Agriculture |     8,645      2,070      1,663 |    12,378 
+                      |      3.28       1.97       2.03 |      2.75 
+----------------------+---------------------------------+----------
+      Manufacturing 1 |    11,107      4,618      3,309 |    19,034 
+                      |      4.22       4.40       4.05 |      4.23 
+----------------------+---------------------------------+----------
+                    3 |    13,441      5,165      3,811 |    22,417 
+                      |      5.11       4.92       4.66 |      4.98 
+----------------------+---------------------------------+----------
+      Manufacturing 3 |    20,368      6,441      4,622 |    31,431 
+                      |      7.74       6.14       5.65 |      6.99 
+----------------------+---------------------------------+----------
+         Construction |    12,512      5,729      5,019 |    23,260 
+                      |      4.75       5.46       6.14 |      5.17 
+----------------------+---------------------------------+----------
+Wholesale and Retail  |    26,277     12,353      9,453 |    48,083 
+                      |      9.98      11.78      11.56 |     10.69 
+----------------------+---------------------------------+----------
+Transportation and St |    11,709      5,635      4,888 |    22,232 
+                      |      4.45       5.37       5.98 |      4.94 
+----------------------+---------------------------------+----------
+          Hospitality |    11,996      4,620      3,698 |    20,314 
+                      |      4.56       4.40       4.52 |      4.52 
+----------------------+---------------------------------+----------
+    Business Services |    45,843     24,524     17,126 |    87,493 
+                      |     17.42      23.38      20.94 |     19.45 
+----------------------+---------------------------------+----------
+Financial and Insuran |     8,168      2,304      2,092 |    12,564 
+                      |      3.10       2.20       2.56 |      2.79 
+----------------------+---------------------------------+----------
+Public Admin and Defe |    10,772      4,145      3,809 |    18,726 
+                      |      4.09       3.95       4.66 |      4.16 
+----------------------+---------------------------------+----------
+            Education |    12,195      3,353      2,322 |    17,870 
+                      |      4.63       3.20       2.84 |      3.97 
+----------------------+---------------------------------+----------
+      Health Services |    32,786     15,235     12,456 |    60,477 
+                      |     12.46      14.53      15.23 |     13.44 
+----------------------+---------------------------------+----------
+                Total |   263,226    104,883     81,768 |   449,877 
+                      |    100.00     100.00     100.00 |    100.00 
+
+. restore 
+
+. 
+. ************************************************
+. * Spell-bin distribution by time window for Sample Selection 
+. ************************************************
+. 
+. drop if year(dtout) < 2011 // 2011 on
+(3,211,074 observations deleted)
+
+. 
+. * --- build windowed bins + samesame FIRST ---
+. drop max_TC_sample samesame
+
+. bysort id (obs_no): g ends_TU         = (state_c[_N]=="TU")
+
+. bysort id (obs_no): g starts_TU       = (state_c[1]=="TU")
+
+. bysort id (obs_no): g byte spell_ch_w = (state_c=="P" & state_c[_n-1]=="TU")
+
+. bysort id (obs_no): egen spells_w     = sum(spell_ch_w)
+
+. gen max_TC_sample = spells_w + 0.5*ends_TU
+
+. replace max_TC_sample = 2 if max_TC_sample > 2
+(1,114,278 real changes made)
+
+. bysort id (obs_no): g byte samesame   = (_n==_N)
+
+. 
+. bysort id (obs_no): egen byte everU_w = max(state_c=="TU")   // 1 if any TU spell in the window
+
+. 
+. ************************************************
+. * Table 7 (2011 onwards)
+. * Variables: indicator if spell starts in unstable 
+. ************************************************
+. tab starts_TU if samesame==1
+
+  starts_TU |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    365,754       41.92       41.92
+          1 |    506,839       58.08      100.00
+------------+-----------------------------------
+      Total |    872,593      100.00
+
+. 
+. ************************************************
+. * Table 8 (2011 onwards) temp contracts per spell bin
+. * Variables: max number of unstable contracts per person
+. ************************************************
+. tab max_TC_sample if samesame==1
+
+max_TC_samp |
+         le |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    199,628       22.88       22.88
+         .5 |    268,645       30.79       53.66
+          1 |    172,191       19.73       73.40
+        1.5 |     53,663        6.15       79.55
+          2 |    178,466       20.45      100.00
+------------+-----------------------------------
+      Total |    872,593      100.00
+
+. 
+. * --- descriptive tables (3-bin, Spain "classic"): windowed count spells_w, lifetime days ---
+. preserve
+
+. replace max_TC_sample = 0 if max_TC_sample == 0.5
+(757,844 real changes made)
+
+. replace max_TC_sample = 1 if max_TC_sample == 1.5
+(321,749 real changes made)
+
+. 
+. replace n_TC_sample = spells_w
+(1,883,974 real changes made)
+
+. ************************************************
+. * Table 9: baseline sample INCLUDING never unstable
+. * Variables: Age, female dummy, foreign nationality dummy, number of 
+. * permanent contracts, number of unstable/temporary contracts, days in
+. * permanent employment, days in unstable employment
+. ************************************************
+. tabstat age sex_d foreign n_PC n_TC_sample days_p_total days_tu if samesame==1, by(max_TC_sample) statistics(mean sd m
+> in p10 p25 p50 p75 p90 max n)
+
+Summary statistics: Mean, SD, Min, p10, p25, p50, p75, p90, Max, N
+Group variable: max_TC_sample 
+
+max_TC_sample |       age     sex_d  foreig~n      n_PC  n_TC_s~e  days_p~l   days_tu
+--------------+----------------------------------------------------------------------
+            0 |  40.62848  .4795685  .2252917  .5109434         0  4666.556  2691.691
+              |  9.560294  .4995829  .4177747  .4998808         0  4730.488  3063.722
+              |        25         0         0         0         0         0         0
+              |        27         0         0         0         0         0         0
+              |        32         0         0         0         0        44         0
+              |        42         0         0         1         0      3046      1357
+              |        49         1         0         1         0      8843      5020
+              |        53         1         1         1         0     11669      7374
+              |        54         1         1         1         0     17166     18799
+              |    468273    468273    468273    468273    468273    468273    468273
+--------------+----------------------------------------------------------------------
+            1 |  40.28908  .4803944  .1859564  1.295881         1   4580.57  2882.904
+              |  9.005325  .4996166  .3890724  .4577757         0  3829.712  2591.984
+              |        25         0         0         0         1         1         0
+              |        28         0         0         1         1       306       106
+              |        32         0         0         1         1      1095       562
+              |        40         0         0         1         1      3739      2187
+              |        49         1         0         2         1      7475      4713
+              |        53         1         1         2         1     10326      6926
+              |        54         1         1         2         1     17098     17819
+              |    225854    225854    225854    225854    225854    225854    225854
+--------------+----------------------------------------------------------------------
+            2 |  40.98422  .4965932  .1810317  3.254401  2.921655  4259.497  2839.871
+              |  7.925123  .4999898  .3850455  1.502977  1.444595  3100.862  2385.687
+              |        25         0         0         0         2         2         2
+              |        31         0         0         2         2       761       334
+              |        34         0         0         2         2      1695       853
+              |        40         0         0         3         2      3615      2161
+              |        48         1         0         4         3      6218      4379
+              |        53         1         1         5         5      8930      6529
+              |        54         1         1        41        41     17010     17151
+              |    178466    178466    178466    178466    178466    178466    178466
+--------------+----------------------------------------------------------------------
+        Total |  40.61339  .4832642  .2060583  1.275212  .8563786  4561.047  2771.489
+              |  9.107141  .4997201   .404473   1.32856  1.303106  4218.553  2819.167
+              |        25         0         0         0         0         0         0
+              |        28         0         0         0         0         0         0
+              |        33         0         0         0         0       643       210
+              |        41         0         0         1         0      3470      1852
+              |        49         1         0         2         1      7822      4755
+              |        53         1         1         3         2     10923      7225
+              |        54         1         1        41        41     17166     18799
+              |    872593    872593    872593    872593    872593    872593    872593
+-------------------------------------------------------------------------------------
+
+. 
+. ************************************************
+. * Table 10: baseline sample EXCLUDING never unstable
+. * Variables: Age, female dummy, foreign nationality dummy, number of 
+. * permanent contracts, number of unstable/temporary contracts, days in
+. * permanent employment, days in unstable employment
+. ************************************************
+. tabstat age sex_d foreign n_PC n_TC_sample days_p_total days_tu if samesame==1 & everU_w==1, by(max_TC_sample) statist
+> ics(mean sd min p10 p25 p50 p75 p90 max n)
+
+Summary statistics: Mean, SD, Min, p10, p25, p50, p75, p90, Max, N
+Group variable: max_TC_sample 
+
+max_TC_sample |       age     sex_d  foreig~n      n_PC  n_TC_s~e  days_p~l   days_tu
+--------------+----------------------------------------------------------------------
+            0 |  40.69039  .5470677  .2800127  .1475293         0  2460.838  3689.067
+              |  9.871437  .4977806  .4490059  .3546334         0  3568.727  3204.105
+              |        25         0         0         0         0         0         0
+              |        27         0         0         0         0         0       107
+              |        31         0         0         0         0         0       621
+              |        42         1         0         0         0       415      2965
+              |        50         1         1         0         0      3947      6420
+              |        53         1         1         1         0      8215      8252
+              |        54         1         1         1         0     16940     18799
+              |    268645    268645    268645    268645    268645    268645    268645
+--------------+----------------------------------------------------------------------
+            1 |  40.28908  .4803944  .1859564  1.295881         1   4580.57  2882.904
+              |  9.005325  .4996166  .3890724  .4577757         0  3829.712  2591.984
+              |        25         0         0         0         1         1         0
+              |        28         0         0         1         1       306       106
+              |        32         0         0         1         1      1095       562
+              |        40         0         0         1         1      3739      2187
+              |        49         1         0         2         1      7475      4713
+              |        53         1         1         2         1     10326      6926
+              |        54         1         1         2         1     17098     17819
+              |    225854    225854    225854    225854    225854    225854    225854
+--------------+----------------------------------------------------------------------
+            2 |  40.98422  .4965932  .1810317  3.254401  2.921655  4259.497  2839.871
+              |  7.925123  .4999898  .3850455  1.502977  1.444595  3100.862  2385.687
+              |        25         0         0         0         2         2         2
+              |        31         0         0         2         2       761       334
+              |        34         0         0         2         2      1695       853
+              |        40         0         0         3         2      3615      2161
+              |        48         1         0         4         3      6218      4379
+              |        53         1         1         5         5      8930      6529
+              |        54         1         1        41        41     17010     17151
+              |    178466    178466    178466    178466    178466    178466    178466
+--------------+----------------------------------------------------------------------
+        Total |  40.63363  .5113059  .2221973  1.356851  1.110414  3649.235  3193.309
+              |   9.10198  .4998725  .4157234  1.503173   1.38554  3675.584  2833.006
+              |        25         0         0         0         0         0         0
+              |        28         0         0         0         0         0       148
+              |        33         0         0         0         0       383       683
+              |        41         1         0         1         1      2470      2402
+              |        49         1         0         2         2      6077      5273
+              |        53         1         1         3         3      9418      7501
+              |        54         1         1        41        41     17098     18799
+              |    672965    672965    672965    672965    672965    672965    672965
+-------------------------------------------------------------------------------------
+
+. 
+. restore
+
+. 
+. *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+. * window filter: only 2014 on  (spell-level end-year, matches the 2011 cut)
+. drop if year(dtout) < 2014 
+(744,365 observations deleted)
+
+. 
+. * refresh sequence bins + samesame on the windowed spells
+. drop ends_TU starts_TU spell_ch_w spells_w samesame
+
+. bysort id (obs_no): g ends_TU         = (state_c[_N]=="TU")
+
+. bysort id (obs_no): g starts_TU       = (state_c[1]=="TU")
+
+. bysort id (obs_no): g byte spell_ch_w = (state_c=="P" & state_c[_n-1]=="TU")
+
+. bysort id (obs_no): egen spells_w     = sum(spell_ch_w)
+
+. drop max_TC_sample
+
+. gen max_TC_sample = spells_w + 0.5*ends_TU
+
+. replace max_TC_sample = 2 if max_TC_sample > 2
+(700,510 real changes made)
+
+. bysort id (obs_no): g byte samesame   = (_n==_N)
+
+. 
+. ************************************************
+. * Table 11: (2014 onwards)
+. * Variables: indicator if spell starts in unstable 
+. ************************************************
+. tab starts_TU if samesame==1
+
+  starts_TU |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    440,526       54.00       54.00
+          1 |    375,243       46.00      100.00
+------------+-----------------------------------
+      Total |    815,769      100.00
+
+.         
+. ************************************************
+. * Table 12: temporary contracts per spell-bin
+. * Variables: maximum number of temporary contracts of each person (only 2014 on)
+. ************************************************
+. tab max_TC_sample if samesame==1
+
+max_TC_samp |
+         le |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    257,810       31.60       31.60
+         .5 |    245,560       30.10       61.70
+          1 |    142,497       17.47       79.17
+        1.5 |     40,868        5.01       84.18
+          2 |    129,034       15.82      100.00
+------------+-----------------------------------
+      Total |    815,769      100.00
+
+.  
+. 
+. *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+. 
+. * window filter: only 2016 on  (spell-level end-year)
+. drop if year(dtout) < 2016
+(513,831 observations deleted)
+
+. 
+. * refresh sequence bins + samesame on the windowed spells
+. drop ends_TU starts_TU spell_ch_w spells_w samesame
+
+. bysort id (obs_no): g ends_TU         = (state_c[_N]=="TU")
+
+. bysort id (obs_no): g starts_TU       = (state_c[1]=="TU")
+
+. bysort id (obs_no): g byte spell_ch_w = (state_c=="P" & state_c[_n-1]=="TU")
+
+. bysort id (obs_no): egen spells_w     = sum(spell_ch_w)
+
+. drop max_TC_sample
+
+. gen max_TC_sample = spells_w + 0.5*ends_TU
+
+. replace max_TC_sample = 2 if max_TC_sample > 2
+(430,642 real changes made)
+
+. bysort id (obs_no): g byte samesame   = (_n==_N)
+
+. 
+. 
+. ************************************************
+. * Table 13: only 2016 on
+. * Variables: indicator if spell starts in unstable
+. ************************************************
+. tab starts_TU if samesame==1
+
+  starts_TU |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    439,011       56.60       56.60
+          1 |    336,570       43.40      100.00
+------------+-----------------------------------
+      Total |    775,581      100.00
+
+.         
+. ************************************************
+. * Table 14: temporary contracts per spell-bin, only 2016 on
+. * Variables: maximum number of temporary contracts of each person
+. ************************************************
+. tab max_TC_sample if samesame==1
+
+max_TC_samp |
+         le |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |    284,716       36.71       36.71
+         .5 |    232,261       29.95       66.66
+          1 |    131,209       16.92       83.57
+        1.5 |     33,495        4.32       87.89
+          2 |     93,900       12.11      100.00
+------------+-----------------------------------
+      Total |    775,581      100.00
+
+.  
+. 
+. * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+. 
+. * Sample Selection 2: same individuals as in decomposition, but all of their spells
+. use "$data/037_decomp.dta", clear
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+
+. 
+. sort id dtin dtout
+
+. 
+. * indicator of first part of unstable spell being TC
+. g PCTC = 0
+
+. order PCTC, after(state_breakdown)
+
+. replace PCTC = 1 if state_breakdown == "T" & state_breakdown[_n-1] == "P"&max_TC_sample==2&n_TC_sample<2
+(18,631 real changes made)
+
+. bysort id: egen PCtemp = sum(PCTC) 
+
+. 
+. * indicator of first part of unstable spell being mini
+. g PCmin = 0
+
+. order PCmin, after(year)
+
+. replace PCmin = 1 if state_breakdown == "mini" & state_breakdown[_n-1] == "P"&max_TC_sample==2&n_TC_sample<2
+(18,310 real changes made)
+
+. bysort id: egen PCmini = sum(PCmin) 
+
+. 
+. ************************************************
+. * Table 15: Permanent to Temporary Contract Transitions 
+. * Variables: Indicator of first day of spell being temporary
+. * Note: only for decomposition sample
+. ************************************************
+. 
+. tab PCtemp if samesame==1&max_TC_sample==2
+
+     PCtemp |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |     64,874       79.34       79.34
+          1 |     15,157       18.54       97.88
+          2 |      1,737        2.12      100.00
+------------+-----------------------------------
+      Total |     81,768      100.00
+
+. 
+. 
+. ************************************************
+. * Table 16: Permanent to mini job transitions 
+. * Variables: Indicator of first day of spell being mini job
+. * Note: only for decomposition sample
+. ************************************************
+. 
+. tab PCmini if samesame==1&max_TC_sample==2 
+
+     PCmini |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |     65,622       80.25       80.25
+          1 |     13,982       17.10       97.35
+          2 |      2,164        2.65      100.00
+------------+-----------------------------------
+      Total |     81,768      100.00
+
+. 
+. * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+. 
+. * Sample Selection 3: same sample as in decomposition
+. use "$data/031_decomp_2011.dta", clear
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+
+. 
+. **********************************************
+. * Table 17:
+. * Variables: days in unstable employment
+. ************************************************
+. tabstat days, statistics(mean sd variance min p10 p25 p50 p75 p90 max n)
+
+    Variable |      Mean        SD  Variance       Min       p10       p25       p50       p75       p90       Max
+-------------+----------------------------------------------------------------------------------------------------
+        days |  360.1755  494.5385  244568.3         1        17        53       152       455       997      6884
+------------------------------------------------------------------------------------------------------------------
+
+    Variable |         N
+-------------+----------
+        days |    163536
+------------------------
+
+. 
+. */
+. 
+. 
+. clear
+
+. log close
+      name:  <unnamed>
+       log:  C:\Josua\Output\514bbe62eba54b2c83a9de49a3246cbd\/05_descriptives.log
+  log type:  text
+ closed on:   7 Jul 2026, 08:47:02
+------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,291 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Josua\Output\d7e474c022fd4df19739f22ddab34246\/036_decomp_primary.log
+  log type:  text
+ opened on:  10 Jun 2026, 14:57:49
+(SIAB 7521 (v1),  7 Mar 2023, Individual File)
+(160,038 observations deleted)
+
+. 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>         
+>         SIAB Analysis
+>         
+>         Do-File for Baseline Variance Decomposition by Education
+>         
+> 
+>         This do-file performs the baseline variance decomposition following the 
+>         non-parametric decomposition developed by Alvarez, Borovickova 
+>         and Shimer (2014).
+>         
+>         Jenny Peters
+> 
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. 
+. 
+. *individual mean days
+. by id: g mu_i = (days[1]+days[2])/2 if n_TC==2
+(1,749 missing values generated)
+
+. 
+. 
+. 
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen N = count(mu_i)
+
+. *sample mean days
+. egen mu_y = mean(mu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. *indiv variance
+. by id : gen sig_i = ((days[1]-days[2])^2)/2 if n_TC==2
+(1,749 missing values generated)
+
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. *average variance
+. by id : gen sigyi = days[1]^2 + days[2]^2 - 2*mu_y^2 if mu_i!=.
+(1,749 missing values generated)
+
+. 
+. gen sig_y = sum(sigyi)/(2*N-1)
+
+. replace sig_y = sig_y[_N]
+(3,497 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. *within variance
+. egen sig_w = mean(sig_i)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. *between variance
+. by id : gen sigbi = mu_i^2 - 0.5*sig_i - mu_y^2 + (1/(2*N))*sig_y
+(1,749 missing values generated)
+
+. egen sig_b = mean(sigbi)
+
+. 
+. *-*-*-* sigma c bar hat *-*-*-*
+. *constant macro component
+. by id : gen sigci = mu_i^2 - 0.5*sig_i
+(1,749 missing values generated)
+
+. egen sig_c = mean(sigci)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. *excess variance estimator
+. by id : gen sigei = (3/2)*sig_i - mu_i^2
+(1,749 missing values generated)
+
+. egen sig_e = mean(sigei)
+
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* 4.2 LOGS DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen ldays = log(days)
+
+. 
+. *-*-*-* mu hat i *-*-*-*
+. 
+. by id : gen lmu_i = (ldays[1]+ldays[2])/2 if n_TC==2
+(1,749 missing values generated)
+
+. *by id : replace lmu_i = . 
+. 
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen lmu_y = mean(lmu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. 
+. by id : gen lsig_i = ((ldays[1]-ldays[2])^2)/2 if n_TC==2
+(1,749 missing values generated)
+
+. *replace lsig_i=. if n_TC==1
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. 
+. by id: gen lsigyi = ldays[1]^2 + ldays[2]^2 - 2*lmu_y^2 if lmu_i!=.
+(1,749 missing values generated)
+
+. 
+. gen lsig_y = sum(lsigyi)/((2*N)-1)
+
+. replace lsig_y = lsig_y[_N]
+(3,497 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. gen lsig_w = sum(lsig_i)/N
+
+. replace lsig_w = lsig_w[_N]
+(3,497 real changes made)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. by id : gen lsigbi = lmu_i^2 - 0.5*lsig_i - lmu_y^2 + (1/(2*N))*lsig_y
+(1,749 missing values generated)
+
+. gen lsig_b = sum(lsigbi)/N
+
+. replace lsig_b = lsig_b[_N]
+(3,497 real changes made)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e = lsig_w - (c(pi)^2)/6
+
+. 
+. gen lsig_c = (c(pi)^2)/6
+
+. 
+. *-*-*-* Saving results *-*-*-*
+. 
+. gen psig_c = sig_c/sig_y
+
+. gen psig_e = sig_e/sig_y 
+
+. gen psig_b = sig_b/sig_y
+
+. 
+. gen plsig_c = lsig_c/lsig_y
+
+. gen plsig_e = lsig_e/lsig_y
+
+. gen plsig_b = lsig_b/lsig_y
+
+. 
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* SPELLS CONTROL DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen spell_d=(n_TC==2)
+
+. 
+. reg ldays spell_d
+
+      Source |       SS           df       MS      Number of obs   =     3,498
+-------------+----------------------------------   F(1, 3496)      =    213.27
+       Model |  585.842907         1  585.842907   Prob > F        =    0.0000
+    Residual |  9603.47731     3,496  2.74699008   R-squared       =    0.0575
+-------------+----------------------------------   Adj R-squared   =    0.0572
+       Total |  10189.3202     3,497  2.91373183   Root MSE        =    1.6574
+
+------------------------------------------------------------------------------
+       ldays | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     spell_d |  -.8184849   .0560465   -14.60   0.000    -.9283721   -.7085977
+       _cons |   5.452451   .0396309   137.58   0.000     5.374749    5.530153
+------------------------------------------------------------------------------
+
+. 
+. predict res, r
+
+. 
+. replace res = 0 if res==.
+(/ real changes made)
+
+. 
+. *-*-*-* mu hat bar eps *-*-*-*
+. 
+. sort id n_TC
+
+. by id: gen resi = (res[1]^2+res[2]^2)/2 if _n==2
+(1,749 missing values generated)
+
+. 
+. gen sigma_eps = sum(resi)/(N-1)
+
+. replace sigma_eps = sigma_eps[_N]
+(3,497 real changes made)
+
+. 
+. *-*-*-* sigma hat y *-*-*-*
+. 
+. by id : gen lmu_i2 = (ldays[1]+ldays[2])/2 if _n==2
+(1,749 missing values generated)
+
+. 
+. egen mu_y2 = mean(lmu_i)
+
+. 
+. by id : gen lsy = ((ldays[1]-mu_y2)^2 + (ldays[2]-mu_y2)^2)/(2*N-1) if _n==2
+(1,749 missing values generated)
+
+. 
+. gen lsig_y2 = sum(lsy)
+
+. replace lsig_y2 = lsig_y2[_N]
+(3,497 real changes made)
+
+. 
+. gen sig_x = lsig_y2-sigma_eps
+
+. 
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. by id: gen lsigi2 = (N*(res[1]-res[2])^2)/(2*(N-1))
+
+. egen lsig_w2 = mean(lsigi2)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. gen lsig_b2 = sigma_eps - lsig_w2
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e2 = lsig_w2 - (c(pi)^2)/6
+
+. 
+. gen lpsig_x= sig_x/lsig_y2
+
+. gen lpsig_e = lsig_e2/lsig_y2
+
+. gen lpsig_b = lsig_b2/lsig_y2
+
+. 
+. 
+. quietly gen lpsig_c = 1 - lpsig_x - abs(lpsig_e) - lpsig_b
+
+. //sum lsig_y2 sig_x lsig_c lsig_e2 lsig_b2 lpsig_c lpsig_x lpsig_e lpsig_b mu_y sig_y
+. 
+. 
+. 
+. 
+. 
+. 
+. 
+end of do-file
+Table 7: Baseline Variance Decomposition, Education Level: primary 
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     lsig_y2 |      3,498    2.913732           0   2.913732   2.913732
+       sig_x |      3,498    .1667418           0   .1667418   .1667418
+      lsig_c |      3,498    1.644934           0   1.644934   1.644934
+     lsig_e2 |      3,498    .8557268           0   .8557268   .8557268
+     lsig_b2 |      3,498    .2463291           0   .2463291   .2463291
+-------------+---------------------------------------------------------
+     lpsig_c |      3,498    .5645455           0   .5645455   .5645455
+     lpsig_x |      3,498    .0572262           0   .0572262   .0572262
+     lpsig_e |      3,498    .2936876           0   .2936876   .2936876
+     lpsig_b |      3,498    .0845407           0   .0845407   .0845407
+        mu_y |      3,498    435.1321           0   435.1321   435.1321
+-------------+---------------------------------------------------------
+       sig_y |      3,498    366741.7           0   366741.7   366741.7
+      name:  <unnamed>
+       log:  C:\Josua\Output\d7e474c022fd4df19739f22ddab34246\/036_decomp_primary.log
+  log type:  text
+ closed on:  10 Jun 2026, 14:57:50
+------------------------------------------------------------------------------------------------------------------------

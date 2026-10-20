@@ -1,0 +1,298 @@
+------------------------------------------------------------------------------------------------------------------------
+      name:  decomp
+       log:  C:\Josua\Output\d7e474c022fd4df19739f22ddab34246\/037_decomp_growth_unemp.log
+  log type:  text
+ opened on:  10 Jun 2026, 14:57:50
+
+. 
+. 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>         
+>         SIAB Analysis
+>         
+>         Do-File for Variance Decomposition with Business Cycle Controls 
+> 
+>         This do-file performs the variance decomposition following the 
+>         non-parametric decomposition developed by Alvarez, Borovickova 
+>         and Shimer (2014) with age controls.
+> 
+>         Table 8 gives the baseline variance decomposition with business cycle
+>         controls with the following parameters:
+>         lsig_y2 - the total variance
+>         sig_x - spell number
+>         lsig_c - the constant macro component
+>         lsig_e2 - duration dependence (excess variance estimator)
+>         lsig_b2 - heterogeneity (between variance)
+>         lpsig_c - share constant
+>         lpsig_x - share spell number
+>         lpsig_e - share duration dependence
+>         lpsig_b - share heterogeneity
+>         mu_y - average duration (individual mean days)
+> 
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. 
+. *individual mean days
+. by id: g mu_i = (days[1]+days[2])/2 if n_TC==2
+(81,768 missing values generated)
+
+. 
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen N = count(mu_i)
+
+. *sample mean days
+. egen mu_y = mean(mu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. *indiv variance
+. by id : gen sig_i = ((days[1]-days[2])^2)/2 if n_TC==2
+(81,768 missing values generated)
+
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. *average variance
+. by id : gen sigyi = days[1]^2 + days[2]^2 - 2*mu_y^2 if mu_i!=.
+(81,768 missing values generated)
+
+. 
+. gen sig_y = sum(sigyi)/(2*N-1)
+
+. replace sig_y = sig_y[_N]
+(163,535 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. *within variance
+. egen sig_w = mean(sig_i)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. *between variance
+. by id : gen sigbi = mu_i^2 - 0.5*sig_i - mu_y^2 + (1/(2*N))*sig_y
+(81,768 missing values generated)
+
+. egen sig_b = mean(sigbi)
+
+. 
+. *-*-*-* sigma c bar hat *-*-*-*
+. *constant macro component
+. by id : gen sigci = mu_i^2 - 0.5*sig_i
+(81,768 missing values generated)
+
+. egen sig_c = mean(sigci)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. *excess variance estimator
+. by id : gen sigei = (3/2)*sig_i - mu_i^2
+(81,768 missing values generated)
+
+. egen sig_e = mean(sigei)
+
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* 4.2 LOGS DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen ldays = log(days)
+
+. 
+. *-*-*-* mu hat i *-*-*-*
+. 
+. by id : gen lmu_i = (ldays[1]+ldays[2])/2 if n_TC==2
+(81,768 missing values generated)
+
+. *by id : replace lmu_i = . 
+. 
+. *-*-*-* mu hat bar y *-*-*-*
+. 
+. egen lmu_y = mean(lmu_i)
+
+. 
+. *-*-*-* sigma i hat *-*-*-*
+. 
+. by id : gen lsig_i = ((ldays[1]-ldays[2])^2)/2 if n_TC==2
+(81,768 missing values generated)
+
+. *replace lsig_i=. if n_TC==1
+. 
+. *-*-*-* sigma y bar hat *-*-*-*
+. 
+. by id: gen lsigyi = ldays[1]^2 + ldays[2]^2 - 2*lmu_y^2 if lmu_i!=.
+(81,768 missing values generated)
+
+. 
+. gen lsig_y = sum(lsigyi)/((2*N)-1)
+
+. replace lsig_y = lsig_y[_N]
+(163,535 real changes made)
+
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. gen lsig_w = sum(lsig_i)/N
+
+. replace lsig_w = lsig_w[_N]
+(163,533 real changes made)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. by id : gen lsigbi = lmu_i^2 - 0.5*lsig_i - lmu_y^2 + (1/(2*N))*lsig_y
+(81,768 missing values generated)
+
+. gen lsig_b = sum(lsigbi)/N
+
+. replace lsig_b = lsig_b[_N]
+(163,535 real changes made)
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e = lsig_w - (c(pi)^2)/6
+
+. 
+. gen lsig_c = (c(pi)^2)/6
+
+. 
+. *-*-*-* Saving results *-*-*-*
+. 
+. gen psig_c = sig_c/sig_y
+
+. gen psig_e = sig_e/sig_y 
+
+. gen psig_b = sig_b/sig_y
+
+. 
+. gen plsig_c = lsig_c/lsig_y
+
+. gen plsig_e = lsig_e/lsig_y
+
+. gen plsig_b = lsig_b/lsig_y
+
+. 
+. // sum sig_y sig_c sig_e sig_b
+. //
+. // sum psig_c psig_e psig_b
+. //
+. // sum lsig_y lsig_c lsig_e lsig_b
+. //
+. // sum plsig_c plsig_e plsig_b
+. 
+. *-*-*-*-*-*-*-*-*-*-*-* SPELLS CONTROL DECOMPOSITION *-*-*-*-*-*-*-*-*-*-*-*-*-*
+. 
+. gen spell_d=(n_TC==2)
+
+. 
+. qui reg ldays ${BC_Var} spell_d
+
+. 
+. predict res, r
+
+. 
+. replace res = 0 if res==.
+(/ real changes made)
+
+. 
+. *-*-*-* mu hat bar eps *-*-*-*
+. 
+. sort id n_TC
+
+. by id: gen resi = (res[1]^2+res[2]^2)/2 if _n==2
+(81,768 missing values generated)
+
+. 
+. gen sigma_eps = sum(resi)/(N-1)
+
+. replace sigma_eps = sigma_eps[_N]
+(163,535 real changes made)
+
+. 
+. *-*-*-* sigma hat y *-*-*-*
+. 
+. by id : gen lmu_i2 = (ldays[1]+ldays[2])/2 if _n==2
+(81,768 missing values generated)
+
+. 
+. egen mu_y2 = mean(lmu_i)
+
+. 
+. by id : gen lsy = ((ldays[1]-mu_y2)^2 + (ldays[2]-mu_y2)^2)/(2*N-1) if _n==2
+(81,768 missing values generated)
+
+. 
+. gen lsig_y2 = sum(lsy)
+
+. replace lsig_y2 = lsig_y2[_N]
+(163,535 real changes made)
+
+. 
+. gen sig_x = lsig_y2-sigma_eps
+
+. 
+. 
+. *-*-*-* sigma w bar hat *-*-*-*
+. 
+. by id: gen lsigi2 = (N*(res[1]-res[2])^2)/(2*(N-1))
+
+. egen lsig_w2 = mean(lsigi2)
+
+. 
+. *-*-*-* sigma b bar hat *-*-*-*
+. 
+. gen lsig_b2 = sigma_eps - lsig_w2
+
+. 
+. *-*-*-* sigma e bar hat *-*-*-*
+. 
+. gen lsig_e2 = lsig_w2 - (c(pi)^2)/6
+
+. 
+. gen lpsig_x= sig_x/lsig_y2
+
+. gen lpsig_e = lsig_e2/lsig_y2
+
+. gen lpsig_b = lsig_b2/lsig_y2
+
+. 
+. // sum lsig_y2 sig_x lsig_c lsig_e2 lsig_b2
+. //
+. // sum lpsig_x lpsig_e lpsig_b
+. 
+. quietly gen lpsig_c = 1 - lpsig_x - abs(lpsig_e) - lpsig_b
+
+. 
+. 
+. /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>         Table 8 gives the baseline variance decomposition with business cycle
+>         controls with the following parameters:
+>         lsig_y2 - the total variance
+>         sig_x - spell number
+>         lsig_c - the constant macro component
+>         lsig_e2 - duration dependence (excess variance estimator)
+>         lsig_b2 - heterogeneity (between variance)
+>         lpsig_c - share constant
+>         lpsig_x - share spell number
+>         lpsig_e - share duration dependence
+>         lpsig_b - share heterogeneity
+>         mu_y - average duration (individual mean days)
+> ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+. 
+end of do-file
+
+Table 8: Baseline Variance Decomposition, BC control: growth_unemp
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     lsig_y2 |    163,536    2.567901           0   2.567901   2.567901
+       sig_x |    163,536    .0687273           0   .0687273   .0687273
+      lsig_c |    163,536    1.644934           0   1.644934   1.644934
+     lsig_e2 |    163,536    .6597062           0   .6597062   .6597062
+     lsig_b2 |    163,536    .1945336           0   .1945336   .1945336
+-------------+---------------------------------------------------------
+     lpsig_c |    163,536    .6405753           0   .6405753   .6405753
+     lpsig_x |    163,536     .026764           0    .026764    .026764
+     lpsig_e |    163,536    .2569048           0   .2569048   .2569048
+     lpsig_b |    163,536    .0757559           0   .0757559   .0757559
+        mu_y |    163,536    360.1755           0   360.1755   360.1755
+-------------+---------------------------------------------------------
+       sig_y |    163,536    244568.3           0   244568.3   244568.3
