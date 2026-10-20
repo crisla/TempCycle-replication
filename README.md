@@ -36,22 +36,45 @@ pip install -r requirements.txt
 python run_all.py
 ```
 
-This writes LaTeX tables to `output/tables/` and figures to
-`output/figures/` and `output/sample_selection/`. Expect the Spanish
-sample-selection step to report as skipped — that is correct behaviour, not a
-failure.
+`run_all.py` is the single entry point. It first tries the **Stata stage**
+(Spain, Germany) and then runs the **Python stage**. A Stata stage runs only
+if a Stata executable is on `PATH` (or named in `$TEMPCYCLE_STATA`) *and* the
+restricted microdata are in place; otherwise it is skipped with a message and
+the shipped intermediate output is used. The Germany stage is further opt-in
+(`TEMPCYCLE_FDZ=1`), because the SIAB exists only inside the FDZ.
+
+The script exits 0 whenever everything that could run did run. It exits 1 only
+if a step that was attempted fails. The skipped Stata stages and the skipped
+Spanish sample-selection step are expected without microdata, not failures.
+
+It writes LaTeX tables to `output/tables/` and figures to `output/figures/`
+and `output/sample_selection/`.
+
+## Software, runtime and seeds
+
+| | |
+|---|---|
+| Python | 3.12.9 (run end-to-end on macOS, Darwin 23.4.0) |
+| Python packages | pinned in `requirements.txt` |
+| Stata | release 17 (`version 17` is set in both master do-files; see note below) |
+| Stata user-written packages | none identified in `code/` (a text search for common ssc commands found none) |
+| Runtime | about 11 s for the Python stage on a laptop; no special hardware |
+| Seeds | `42` in both sample-selection scripts (`np.random.seed(42)` and `seed=42` in the GMM optimiser); the figure scripts use no random draws |
+
+The Stata release for the Spanish pipeline is not recorded in the original
+files; `version 17` in `code/spain/master.do` is set to match Germany.
 
 ## Repository layout
 
 ```
-├── run_all.py                  Orchestrates the Python stage
+├── run_all.py                  Single entry point: Stata stage (if possible), then Python stage
 ├── requirements.txt
 ├── code/
 │   ├── germany/                Stata: SIAB pipeline (run inside the FDZ environment)
 │   ├── spain/                  Stata: MCVL pipeline
 │   │   ├── format_files/       Contract/industry/occupation cleaning
 │   │   └── rawfiles/           Raw-file formatting helpers
-│   ├── python/                 The five scripts run_all.py calls
+│   ├── python/                 The seven scripts run_all.py calls (+ plot_atypical.py, see below)
 │   └── matlab/                 Early sample-selection simulations (not on the paper path)
 ├── notebooks/                  Working notebooks mirroring code/python/
 ├── data/
@@ -97,11 +120,16 @@ Once either stage has run, return to the repository root and run
 | `code/python/sample_selection_germany.py` | `output/sample_selection/selection_germany.json` | Discrete 2×2-type GMM, Germany |
 | `code/python/sample_selection_spain.py` | `output/sample_selection/selection_spain.json` | Discrete 2×2-type GMM, Spain *(needs MCVL; estimates ship pre-computed)* |
 | `code/python/sample_selection_tables.py` | `output/tables/sample_selection_tables.tex` | Sample-selection moments and type-composition tables |
-| `notebooks/Results Interpretation Figures.ipynb` | `exp_dur_base_a.png`, `exp_dur_T_a.png`, `het_DD_base_a.png` | Weibull-mixture expected-remaining-duration figures |
-| `code/python/plot_atypical.py` | `atypical_incidence_by_year.png` | Figure 1 *(built from Spanish microdata)* |
+| `code/python/results_interpretation_figures.py` | `output/figures/exp_dur_base_a.png`, `exp_dur_T_a.png`, `het_DD_base_a.png` | Weibull-mixture expected-remaining-duration figures (analytic; built from the shipped logs) |
+| `code/python/sample_selection_figures.py` | `output/sample_selection/type_composition_paper_discrete.png`, `type_composition_paper_simple.png`, `type_grid_2x2.png` | Spain type-composition figures, redrawn from `selection_spain.json` (the Germany counterpart is written by `sample_selection_germany.py`) |
+| `code/python/plot_atypical.py` | `atypical_incidence_by_year.png` | Figure 1. **Not called by `run_all.py`**: it reads logs not shipped here and uses paths from an older layout |
 
 The notebooks in `notebooks/` are the working copies; the scripts in
-`code/python/` are hand-patched exports of them for headless running. They are
+`code/python/` are exports of them for headless running. The simulation cells
+of `Results Interpretation Figures.ipynb` (calibration check, large hazard
+simulation, data-versus-model survival plot) need the individual-level Spanish
+duration extract and save no figure used in the paper; they remain in the
+notebook only. They are
 kept deliberately parallel — **if you change one, change the other.**
 
 Two figures in the paper, the spell-definition and spell-selection schematics,

@@ -46,6 +46,10 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
+* Stata release. Set to 17 to match code/germany/master.do; the release the
+* Spanish results were originally produced with is not recorded in the
+* original files -- confirm before submission.
+version 17
 clear all
 set more off
 
@@ -56,7 +60,11 @@ set more off
 * Path to this spain/ folder. Must be set: the do-files use relative paths
 * (e.g. rawfiles/..., ../../data/aggregate/...) so Stata's working dir has to
 * be here. EDIT THIS to the code/spain/ folder of your checkout.
-global spain_dir = "/path/to/TempCycle-replication/code/spain"
+* 2026-10-20: hard-coded placeholder commented out, not deleted. run_all.py
+* launches this file from code/spain/, so default to the working directory;
+* set the global yourself beforehand to override.
+* global spain_dir = "/path/to/TempCycle-replication/code/spain"
+if "${spain_dir}" == "" global spain_dir = "`c(pwd)'"
 cd "${spain_dir}"
 
 * ---------------------------------------------------------------------------

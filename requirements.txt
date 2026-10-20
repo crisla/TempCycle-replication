@@ -1,5 +1,6 @@
 # Python stage of the TempCycle replication package.
 # Versions are those the published results were produced with.
+# Python 3.12 (run end-to-end on 3.12.9).
 #   pip install -r requirements.txt
 
 pandas==2.2.3
