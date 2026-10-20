@@ -66,7 +66,7 @@ failure.
 │   ├── figures/                Generated figures
 │   ├── sample_selection/       GMM estimates (.json) and selection figures
 │   └── intermediate/           Parsed CSVs written en route to the tables
-└── paper/                      Paper source and the analytical derivations
+└── paper/                      Manuscript — added before submission; see its README
 ```
 
 ## Running the Stata stage
