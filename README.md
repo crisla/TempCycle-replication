@@ -5,7 +5,6 @@
 Maia Güell (CUNEF Universidad, University of Edinburgh, CEPR, FEDEA, IZA) ·
 Cristina Lafuente (University of Bath) ·
 Jenny Peters (University of Edinburgh) ·
-Manuel Sánchez (RavenPack) ·
 Hélène Turon (University of Bristol, IZA)
 
 ---
