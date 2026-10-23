@@ -166,7 +166,6 @@ aggregated estimation and descriptive output only. Full details, including the
 request process for both sources, are in
 [`data/raw/README.md`](data/raw/README.md).
 
-## Provenance
+## Contact
 
-Curated from the working repository `TempCycle` at commit
-`03d96279b60de039fa5c91d38740a2ad4e88873f` (26 July 2026, branch `submission`).
+For questions about the code, please contact Cristina Lafuente (clm96@bath.ac.uk) or Jenny Peters (jenny.peters@ed.ac.uk).
